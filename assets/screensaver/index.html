@@ -18,11 +18,11 @@
   html, body {
     width: 100%; height: 100%; overflow: hidden;
     background: #07090d; color: var(--text);
-    font-family: "Google Sans", "Roboto", "Segoe UI", system-ui, sans-serif;
+    font-family: "Google Sans", "Roboto", "Heebo", "Noto Sans Hebrew", "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   .slide {
-    position: absolute; inset: 0;
+    position: absolute; inset: 0; overflow: hidden;
     opacity: 0; transition: opacity 1.4s ease;
     background: var(--base);
   }
@@ -142,6 +142,29 @@
   .notice .mark { width: calc(var(--unit) * 7); height: calc(var(--unit) * 7); padding: 0 calc(var(--unit) * 1.4); animation: pulse 2.4s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: 0.45; } }
   .stale { color: #ffb4a8; }
+
+  /* Right-to-left editions such as Hebrew. The script sets dir="rtl" on the page. Flex rows then mirror
+     by themselves: the brand moves to the right and the clock to the left. These rules mirror the
+     parts that are positioned or padded by side, and drop letter spacing, which suits Latin capitals
+     but not Hebrew. */
+  html[dir="rtl"] .glow.a { right: auto; left: -30vmax; }
+  html[dir="rtl"] .glow.b { left: auto; right: -35vmax; }
+  @keyframes drift-a-rtl { to { transform: translate(6vmax, 5vmax) scale(1.08); } }
+  @keyframes drift-b-rtl { to { transform: translate(-5vmax, -4vmax) scale(1.1); } }
+  html[dir="rtl"] .slide.shown .glow.a { animation-name: drift-a-rtl; }
+  html[dir="rtl"] .slide.shown .glow.b { animation-name: drift-b-rtl; }
+  @media (orientation: landscape) {
+    /* The headline column keeps its wide margin on the side the clock is on, now the left. A column
+       narrower than the screen stays against the right edge. */
+    html[dir="rtl"] .content { left: calc(var(--unit) * 14); right: calc(var(--unit) * 5); }
+    html[dir="rtl"] .content.multi { left: calc(var(--unit) * 5); right: calc(var(--unit) * 5); }
+  }
+  html[dir="rtl"] .meta span + span::before { margin-right: 0; margin-left: calc(var(--unit) * 1.2); }
+  html[dir="rtl"] .coverage { padding-left: 0; border-left: 0; padding-right: calc(var(--unit) * 1.6); border-right: 3px solid var(--faint); }
+  html[dir="rtl"] .clock { text-align: left; }
+  /* A time such as 9:00 PM is Latin text. Isolated, it keeps its own order instead of reading PM 9:00. */
+  html[dir="rtl"] .clock .time { direction: ltr; unicode-bidi: isolate; }
+  html[dir="rtl"] .brand, html[dir="rtl"] .brand small, html[dir="rtl"] .meta, html[dir="rtl"] h1 { letter-spacing: 0; }
 </style>
 </head>
 <body>
@@ -163,6 +186,62 @@
   var seconds = Math.max(5, Number(options.secondsPerStory) || 12);
   document.documentElement.style.setProperty('--duration', seconds + 's');
   if (options.language) document.documentElement.lang = options.language;
+
+  // Hebrew editions read right to left and use Hebrew labels. Every other edition keeps the English ones.
+  var lang = String(options.language || 'en').toLowerCase();
+  var he = lang === 'he' || lang === 'iw' || lang.indexOf('he-') === 0;
+  if (he) document.documentElement.dir = 'rtl';
+  // A name that starts with a Hebrew letter takes the "and" prefix directly, any other with a hyphen.
+  function vav(name) { return (/^[\u0590-\u05ff]/.test(name) ? '\u05d5' : '\u05d5-\u2060') + name; }
+  var L = he ? {
+    from: '\u05de\u05ea\u05d5\u05da \u05d7\u05d3\u05e9\u05d5\u05ea Google',
+    offline: function (time) { return '\u05de\u05ea\u05d5\u05da \u05d7\u05d3\u05e9\u05d5\u05ea Google \u00b7 \u05d0\u05d9\u05df \u05d7\u05d9\u05d1\u05d5\u05e8, \u05e2\u05d3\u05db\u05d5\u05df \u05d0\u05d7\u05e8\u05d5\u05df ' + time; },
+    loading: '\u05d8\u05d5\u05e2\u05df \u05db\u05d5\u05ea\u05e8\u05d5\u05ea\u2026',
+    failed: function () { return '\u05d0\u05d9\u05df \u05d7\u05d9\u05d1\u05d5\u05e8 \u05dc\u05d7\u05d3\u05e9\u05d5\u05ea Google. \u05de\u05e0\u05e1\u05d4 \u05e9\u05d5\u05d1 \u05d1\u05e7\u05e8\u05d5\u05d1.'; },
+    none: function (heading) { return '\u05d0\u05d9\u05df \u05db\u05e8\u05d2\u05e2 \u05db\u05ea\u05d1\u05d5\u05ea \u05e2\u05d1\u05d5\u05e8 ' + heading; },
+    now: '\u05d4\u05e8\u05d2\u05e2',
+    minutes: function (n) { return n === 1 ? '\u05dc\u05e4\u05e0\u05d9 \u05d3\u05e7\u05d4' : '\u05dc\u05e4\u05e0\u05d9 ' + n + ' \u05d3\u05e7\u05d5\u05ea'; },
+    hours: function (n) { return n === 1 ? '\u05dc\u05e4\u05e0\u05d9 \u05e9\u05e2\u05d4' : n === 2 ? '\u05dc\u05e4\u05e0\u05d9 \u05e9\u05e2\u05ea\u05d9\u05d9\u05dd' : '\u05dc\u05e4\u05e0\u05d9 ' + n + ' \u05e9\u05e2\u05d5\u05ea'; },
+    days: function (n) { return n === 1 ? '\u05dc\u05e4\u05e0\u05d9 \u05d9\u05d5\u05dd' : n === 2 ? '\u05dc\u05e4\u05e0\u05d9 \u05d9\u05d5\u05de\u05d9\u05d9\u05dd' : '\u05dc\u05e4\u05e0\u05d9 ' + n + ' \u05d9\u05de\u05d9\u05dd'; },
+    also: '\u05de\u05e7\u05d5\u05e8\u05d5\u05ea \u05e0\u05d5\u05e1\u05e4\u05d9\u05dd: ',
+    names: function (others) {
+      var named = others.slice(0, 4);
+      if (others.length > 4) return named.join(', ') + ' \u05d5\u05e2\u05d5\u05d3 ' + (others.length - 4);
+      if (named.length === 1) return named[0];
+      return named.slice(0, -1).join(', ') + ' ' + vav(named[named.length - 1]);
+    },
+    date: 'he-IL',
+    sections: {
+      'Top stories': '\u05d4\u05db\u05ea\u05d1\u05d5\u05ea \u05d4\u05de\u05d5\u05d1\u05d9\u05dc\u05d5\u05ea',
+      'World': '\u05d1\u05e2\u05d5\u05dc\u05dd',
+      'Your country': '\u05d1\u05d0\u05e8\u05e5',
+      'Business': '\u05e2\u05e1\u05e7\u05d9\u05dd',
+      'Technology': '\u05d8\u05db\u05e0\u05d5\u05dc\u05d5\u05d2\u05d9\u05d4',
+      'Entertainment': '\u05d1\u05d9\u05d3\u05d5\u05e8',
+      'Sport': '\u05e1\u05e4\u05d5\u05e8\u05d8',
+      'Science': '\u05de\u05d3\u05e2',
+      'Health': '\u05d1\u05e8\u05d9\u05d0\u05d5\u05ea'
+    }
+  } : {
+    from: 'from Google News',
+    offline: function (time) { return 'from Google News \u00b7 offline, last update ' + time; },
+    loading: 'Loading headlines\u2026',
+    failed: function (error) { return error + '. Trying again soon.'; },
+    none: function (heading) { return 'No stories match ' + heading + ' right now.'; },
+    now: 'Just now',
+    minutes: function (n) { return n + ' min ago'; },
+    hours: function (n) { return n + (n === 1 ? ' hour ago' : ' hours ago'); },
+    days: function (n) { return n + (n === 1 ? ' day ago' : ' days ago'); },
+    also: 'Also covered by ',
+    names: function (others) {
+      var named = others.slice(0, 4);
+      if (others.length > 4) named.push(others.length - 4 + ' more');
+      return list(named);
+    },
+    date: [],
+    sections: {}
+  };
+  document.getElementById('source').textContent = L.from;
 
   // Base, first glow and second glow for each slide, in turn.
   var palettes = [
@@ -186,12 +265,11 @@
     var t = Date.parse(date);
     if (!t) return null;
     var minutes = Math.round((Date.now() - t) / 60000);
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return minutes + ' min ago';
+    if (minutes < 1) return L.now;
+    if (minutes < 60) return L.minutes(minutes);
     var hours = Math.round(minutes / 60);
-    if (hours < 24) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
-    var days = Math.round(hours / 24);
-    return days + (days === 1 ? ' day ago' : ' days ago');
+    if (hours < 24) return L.hours(hours);
+    return L.days(Math.round(hours / 24));
   }
 
   function list(names) {
@@ -200,6 +278,7 @@
   }
 
   var heading = options.heading || 'Top stories';
+  heading = L.sections[heading] || heading;
   document.getElementById('heading').textContent = heading + (options.edition ? ' · ' + options.edition : '');
 
   // The clock follows the kiosk's own locale and 12 or 24 hour preference.
@@ -209,7 +288,7 @@
     var tick = function () {
       var now = new Date();
       document.getElementById('time').textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      document.getElementById('date').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+      document.getElementById('date').textContent = now.toLocaleDateString(L.date, { weekday: 'long', month: 'long', day: 'numeric' });
     };
     tick();
     setInterval(tick, 1000 * 15);
@@ -221,15 +300,15 @@
     var mark = el('span', 'mark');
     for (var k = 0; k < 3; k++) mark.appendChild(el('i'));
     notice.appendChild(mark);
-    var message = data.error ? data.error + '. Trying again soon.'
-      : data.updated ? 'No stories match ' + heading + ' right now.' : 'Loading headlines…';
+    var message = data.error ? L.failed(data.error)
+      : data.updated ? L.none(heading) : L.loading;
     notice.appendChild(el('div', data.error ? 'stale' : null, message));
     root.appendChild(notice);
     return;
   }
   if (data.error) {
-    document.getElementById('source').textContent = 'from Google News · offline, last update ' +
-      new Date(data.updated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    document.getElementById('source').textContent = L.offline(
+      new Date(data.updated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
     document.getElementById('source').className = 'stale';
   }
 
@@ -257,10 +336,8 @@
     var others = story.outlets || [];
     if (options.showCoverage !== false && others.length) {
       var coverage = el('p', 'coverage');
-      coverage.appendChild(document.createTextNode('Also covered by '));
-      var named = others.slice(0, 4);
-      if (others.length > 4) named.push(others.length - 4 + ' more');
-      coverage.appendChild(el('b', null, list(named)));
+      coverage.appendChild(document.createTextNode(L.also));
+      coverage.appendChild(el('b', null, L.names(others)));
       content.appendChild(coverage);
     }
     return content;

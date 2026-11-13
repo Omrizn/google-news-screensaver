@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "id": "google-news-headlines",
-  "name": "Google News Headlines",
-  "version": "1.0.0",
+  "id": "google-news-headlines-he",
+  "name": "Google News Headlines (Hebrew)",
+  "version": "1.1.0",
   "apiVersion": 1,
   "minAndroidSdk": 24,
   "minAppVersion": "2026.10.45",
   "entryClass": "kiosk.googlenews.GoogleNewsPlugin",
-  "description": "A screensaver that cycles through the headlines on Google News for the edition and section you pick, or for a search, with each story's outlet, its logo and the other outlets covering it. Select Headlines (Google News Headlines) under Screensaver > Screensaver mode.",
-  "author": "MozKaboom",
+  "description": "A screensaver that cycles through the headlines on Google News for the edition and section you pick, or for a search, with each story's outlet, its logo and the other outlets covering it. This version adds the Israel edition in Hebrew with right-to-left layout and Hebrew labels, and lets you choose which outlets to show or hide. Select Headlines (Google News Headlines (Hebrew)) under Screensaver > Screensaver mode.",
+  "author": "MozKaboom (modified)",
   "license": "Apache-2.0",
   "capabilities": [
     "screensaver"
@@ -19,8 +19,30 @@
       "key": "edition",
       "type": "select",
       "title": "Edition",
-      "default": "United Kingdom",
-      "options": ["United Kingdom", "United States", "Ireland", "Canada", "Australia", "New Zealand", "India", "Singapore", "South Africa", "Nigeria", "Philippines", "Deutschland", "France", "España", "Italia", "Nederland", "Portugal", "Brasil", "México", "日本"],
+      "default": "ישראל",
+      "options": [
+        "ישראל",
+        "United Kingdom",
+        "United States",
+        "Ireland",
+        "Canada",
+        "Australia",
+        "New Zealand",
+        "India",
+        "Singapore",
+        "South Africa",
+        "Nigeria",
+        "Philippines",
+        "Deutschland",
+        "France",
+        "España",
+        "Italia",
+        "Nederland",
+        "Portugal",
+        "Brasil",
+        "México",
+        "日本"
+      ],
       "group": "Stories",
       "description": "The Google News edition to show, which sets the country and language of the headlines."
     },
@@ -29,7 +51,17 @@
       "type": "select",
       "title": "Section",
       "default": "Top stories",
-      "options": ["Top stories", "World", "Your country", "Business", "Technology", "Entertainment", "Sport", "Science", "Health"],
+      "options": [
+        "Top stories",
+        "World",
+        "Your country",
+        "Business",
+        "Technology",
+        "Entertainment",
+        "Sport",
+        "Science",
+        "Health"
+      ],
       "group": "Stories",
       "description": "Which Google News section to show. Your country is the edition's national news."
     },
@@ -40,6 +72,22 @@
       "default": "",
       "group": "Stories",
       "description": "Show the latest stories about a subject, such as a team or a town, instead of a section. Leave empty to use the section."
+    },
+    {
+      "key": "onlyOutlets",
+      "type": "string",
+      "title": "Only these outlets",
+      "default": "",
+      "group": "Stories",
+      "description": "Show stories only from these outlets. Separate names with commas, for example ynet, maariv, haaretz. A name matches part of the outlet's name or website address, ignoring case. Leave empty to show every outlet. Google News lists about thirty stories per section, so a short list can leave few stories."
+    },
+    {
+      "key": "hideOutlets",
+      "type": "string",
+      "title": "Hide these outlets",
+      "default": "",
+      "group": "Stories",
+      "description": "Never show stories from these outlets, and leave them out of the other coverage line. Same format as the list above. Hiding wins over showing."
     },
     {
       "key": "storyCount",

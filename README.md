@@ -1,35 +1,33 @@
-# Google News Headlines
+# Google News Headlines (Hebrew)
 
-A [Kiosk Satellite](https://kiosksatellite.com) screensaver that cycles through the headlines on [Google News](https://news.google.com). Each story fills the screen with its headline, the outlet that published it and its logo, how long ago it was published and the other outlets covering the same story. Pick the edition, such as United Kingdom or United States, a section, such as World or Sport, or follow a search instead.
+> This is a modified version of [MozKaboom/google-news-screensaver](https://github.com/MozKaboom/google-news-screensaver) (Apache-2.0). It adds an **Israel edition in Hebrew** (the default), a **right-to-left Hebrew screensaver** with translated labels, and **outlet lists** to choose which news sources appear. Install it under its own id, `google-news-headlines-he`, so it can sit next to the original plugin.
+
+A [Kiosk Satellite](https://kiosksatellite.com) screensaver that cycles through the headlines on [Google News](https://news.google.com). Each story fills the screen with its headline, the outlet that published it and its logo, how long ago it was published and the other outlets covering the same story. Pick the edition, such as Israel, United Kingdom or United States, a section, such as World or Sport, or follow a search instead. Choose which outlets to show or hide.
 
 This plugin is not affiliated with, endorsed by or sponsored by Google. It reads the public Google News RSS feeds.
 
 ## Screenshots
 
-![A landscape screen showing three UK headlines from Google News side by side, each with its outlet's logo and the other outlets covering it](https://raw.githubusercontent.com/MozKaboom/google-news-screensaver/main/docs/screenshots/landscape.jpg)
+The screenshots are of the original English layout. With a Hebrew edition the same layout is mirrored right to left.
 
-![A portrait screen showing four UK headlines from Google News stacked, each with its outlet's logo and the other outlets covering it](https://raw.githubusercontent.com/MozKaboom/google-news-screensaver/main/docs/screenshots/portrait.jpg)
+![A landscape screen showing three UK headlines from Google News side by side, each with its outlet's logo and the other outlets covering it](docs/screenshots/landscape.jpg)
+
+![A portrait screen showing four UK headlines from Google News stacked, each with its outlet's logo and the other outlets covering it](docs/screenshots/portrait.jpg)
 
 ## Installation
 
-### Community Plugins (Recommended)
-
-Google News Headlines is listed in [Community Plugins](https://kiosksatellite.com/plugins/). Use the button below to open it in your Kiosk Satellite and install it.
-
-[![Install in Kiosk Satellite](https://kiosksatellite.com/img/badges/plugin-add.svg)](https://kiosksatellite.com/redirect/plugin/?repository=MozKaboom/google-news-screensaver)
-
-Or search for `Google News Headlines` in **Settings > Plugin Manager > Browse plugins** in Kiosk Satellite.
-
-### Manual
+Kiosk Satellite installs plugins from a GitHub repository. Put this code in your own repository, publish a release so the workflow builds the plugin, then add it by address:
 
 1. Open **Settings > Plugin Manager** in Kiosk Satellite and turn on **Enable Plugins**.
-2. Choose **Add plugin**, paste `https://github.com/MozKaboom/google-news-screensaver` and choose **Preview**.
+2. Choose **Add plugin**, paste the address of your repository, for example `https://github.com/<you>/google-news-screensaver`, and choose **Preview**.
 3. Review the plugin and choose **Trust and install**.
+
+To install without GitHub, build the zip (see **Build**) and use **Plugin Manager > Developer Tools > Install from ZIP**.
 
 ## Use it
 
-1. Enable **Google News Headlines** from its entry row in Plugin Manager.
-2. Open **Screensaver > Screensaver mode** and choose **Headlines (Google News Headlines)**. You can also pick it in a screensaver schedule entry.
+1. Enable **Google News Headlines (Hebrew)** from its entry row in Plugin Manager.
+2. Open **Screensaver > Screensaver mode** and choose **Headlines (Google News Headlines (Hebrew))**. You can also pick it in a screensaver schedule entry.
 
 Kiosk Satellite still decides when the screensaver starts and stops, its brightness, widgets and pixel shift. The plugin only draws the headlines.
 
@@ -41,9 +39,11 @@ The **Refresh headlines** action loads the latest headlines right away. Run it f
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Edition | United Kingdom | The Google News edition, which sets the country and language of the headlines. |
+| Edition | ישראל (Israel) | The Google News edition, which sets the country and language of the headlines. Israel uses Hebrew. |
 | Section | Top stories | Top stories, World, Your country, Business, Technology, Entertainment, Sport, Science or Health. Your country is the edition's national news. |
 | Search instead | Empty | The latest stories about a subject, such as a team or a town, instead of a section. Leave it empty to use the section. |
+| Only these outlets | Empty | Show stories only from these outlets. Separate names with commas, for example `ynet, maariv, haaretz`. A name matches part of the outlet's name or of its website address, ignoring case, so `ynet` matches both "Ynet" and `ynet.co.il`. Leave empty to show every outlet. |
+| Hide these outlets | Empty | Never show stories from these outlets, and leave them out of the other coverage line. Same format as the list above. Hiding wins over showing. |
 | Number of stories | 10 | How many headlines to cycle through, 3 to 20, in the order Google News lists them. With several headlines per screen it rounds up to fill the last screen. |
 | Headlines per screen | 1 | How many headlines to show at once, 1 to 4. More than one stacks them on a portrait screen and puts them side by side on a landscape one. The text grows or shrinks to fill the screen. |
 | Time per screen | 12 s | How long each screen of headlines stays up. |
@@ -51,6 +51,14 @@ The **Refresh headlines** action loads the latest headlines right away. Run it f
 | Show outlet logos | On | Download each outlet's logo from Google. Turn off to show its initial instead. |
 | Show other coverage | On | Name the other outlets covering each story, when Google News groups them. |
 | Show clock | On | The time and date in the top right corner. |
+
+## Hebrew and outlets
+
+When the feed is in Hebrew (the Israel edition) the screensaver turns right to left: the layout is mirrored, the section names, "ago" times, the other coverage line and the date are in Hebrew, and Latin names such as "Nvidia" inside a Hebrew headline are kept in the right order. Other editions look as they did in the original plugin.
+
+The outlet lists work on the stories Google News returns for the edition and section, usually thirty to a hundred. The **Number of stories** limit counts only the stories that pass the lists. A short list of outlets can leave you with fewer stories than you asked for. To follow particular outlets more closely, use **Search instead**. The text is passed to Google News search unchanged, so its search operators, such as `site:ynet.co.il OR site:maariv.co.il`, should work. This has not been tried on a device.
+
+The setting labels in Kiosk Satellite's Plugin Manager stay in English.
 
 ## Data and privacy
 
@@ -78,4 +86,4 @@ Releases are built by the GitHub Actions workflow in `.github/workflows/build.ym
 
 ## License
 
-[Apache-2.0](LICENSE). The SDK interfaces in `sdk/` and the build tools in `tools/` come from the [Kiosk Satellite plugin template](https://github.com/jxlarrea/kiosk-satellite-plugins) under the same license.
+[Apache-2.0](LICENSE). Modified from the original [Google News Headlines plugin](https://github.com/MozKaboom/google-news-screensaver) by MozKaboom: Israel edition and Hebrew right-to-left layout, outlet lists. The SDK interfaces in `sdk/` and the build tools in `tools/` come from the [Kiosk Satellite plugin template](https://github.com/jxlarrea/kiosk-satellite-plugins) under the same license.

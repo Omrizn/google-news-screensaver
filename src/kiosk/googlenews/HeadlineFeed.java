@@ -23,7 +23,10 @@ final class HeadlineFeed {
 
     /** Edition names as the settings show them, with Google News' language, country and edition codes. */
     static final Map<String, String[]> EDITIONS = new LinkedHashMap<>();
+    /** The edition used when the setting is missing or unknown: Israel, in Hebrew. */
+    static final String DEFAULT_EDITION = "ישראל";
     static {
+        edition(DEFAULT_EDITION, "he", "IL", "IL:he");
         edition("United Kingdom", "en-GB", "GB", "GB:en");
         edition("United States", "en-US", "US", "US:en");
         edition("Ireland", "en-IE", "IE", "IE:en");
@@ -74,7 +77,7 @@ final class HeadlineFeed {
 
     /** The feed for an edition and a section, or for a search when {@code search} isn't blank. */
     static String url(String edition, String section, String search) {
-        String[] codes = EDITIONS.containsKey(edition) ? EDITIONS.get(edition) : EDITIONS.get("United Kingdom");
+        String[] codes = EDITIONS.containsKey(edition) ? EDITIONS.get(edition) : EDITIONS.get(DEFAULT_EDITION);
         String query = "hl=" + codes[0] + "&gl=" + codes[1] + "&ceid=" + codes[2];
         String terms = search == null ? "" : search.trim();
         if (!terms.isEmpty()) return BASE + "/search?q=" + encode(terms) + "&" + query;
@@ -91,6 +94,14 @@ final class HeadlineFeed {
 
     /** At most {@code limit} stories in feed order. */
     static List<Map<String, Object>> parse(String xml, int limit) {
+        return parse(xml, limit, OutletFilter.NONE);
+    }
+
+    /**
+     * At most {@code limit} stories in feed order, from the outlets the filter allows. The limit counts
+     * only the stories kept, so a filter never leaves the screensaver short while the feed has more.
+     */
+    static List<Map<String, Object>> parse(String xml, int limit, OutletFilter filter) {
         List<Map<String, Object>> stories = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
         Matcher item = ITEM.matcher(xml);
@@ -109,6 +120,7 @@ final class HeadlineFeed {
                 site = unescape(m.group(1)).trim();
                 source = text(m.group(2));
             }
+            if (!filter.allows(source, site)) continue;
             // Titles end with " - Outlet". Drop it, as the outlet shows on its own.
             if (source != null && title.endsWith(" - " + source) && title.length() > source.length() + 3) {
                 title = title.substring(0, title.length() - source.length() - 3).trim();
@@ -127,7 +139,7 @@ final class HeadlineFeed {
                 Matcher outlet = OUTLET.matcher(unescape(description));
                 while (outlet.find()) {
                     String name = text(outlet.group(1));
-                    if (name == null) continue;
+                    if (name == null || filter.hides(name)) continue;
                     count++;
                     if (!name.equals(source)) outlets.add(name);
                 }

@@ -87,7 +87,8 @@ public final class GoogleNewsPlugin implements KioskPlugin {
         settings = next;
         if (worker == null || previous == null) return;
         if (next.refreshMinutes != previous.refreshMinutes || next.storyLimit() != previous.storyLimit()
-                || !next.feedUrl().equals(previous.feedUrl()) || (next.showLogos && !previous.showLogos)) {
+                || !next.feedUrl().equals(previous.feedUrl()) || !next.filter.key.equals(previous.filter.key)
+                || (next.showLogos && !previous.showLogos)) {
             scheduleRefresh(0);
         } else if (!next.equals(previous)) {
             worker.execute(this::render);
@@ -128,10 +129,10 @@ public final class GoogleNewsPlugin implements KioskPlugin {
     void refresh() {
         Settings current = settings;
         try {
-            List<Map<String, Object>> fresh = HeadlineFeed.parse(fetcher.feed(current.feedUrl()), current.storyLimit());
+            List<Map<String, Object>> fresh = HeadlineFeed.parse(fetcher.feed(current.feedUrl()), current.storyLimit(), current.filter);
             if (fresh.isEmpty()) {
-                if (current.search.isEmpty()) throw new IOException("No stories found on Google News");
-                // A search with no results is an answer, not a failure.
+                if (current.search.isEmpty() && !current.filter.active()) throw new IOException("No stories found on Google News");
+                // A search or an outlet list with no results is an answer, not a failure.
             }
             // Logos already fetched for the same outlet are reused, so a refresh only downloads new ones.
             Map<String, String> cache = new HashMap<>();
@@ -162,7 +163,7 @@ public final class GoogleNewsPlugin implements KioskPlugin {
             error = null;
             render();
             String when = DateFormat.getTimeInstance(DateFormat.SHORT).format(new Date(updated));
-            status(fresh.isEmpty() ? "No stories match the search, updated " + when : fresh.size() + " stories, updated " + when, false);
+            status(fresh.isEmpty() ? "No stories match the search or the outlet lists, updated " + when : fresh.size() + " stories, updated " + when, false);
         } catch (IOException | RuntimeException e) {
             if (Thread.currentThread().isInterrupted()) return;
             error = "Couldn't reach Google News";
@@ -214,6 +215,7 @@ public final class GoogleNewsPlugin implements KioskPlugin {
         final String edition;
         final String section;
         final String search;
+        final OutletFilter filter;
         final int storyCount;
         final int perScreen;
         final int secondsPerStory;
@@ -223,9 +225,10 @@ public final class GoogleNewsPlugin implements KioskPlugin {
         final boolean showClock;
 
         Settings(Map<String, Object> values) {
-            edition = choice(values.get("edition"), HeadlineFeed.EDITIONS.keySet(), "United Kingdom");
+            edition = choice(values.get("edition"), HeadlineFeed.EDITIONS.keySet(), HeadlineFeed.DEFAULT_EDITION);
             section = choice(values.get("section"), HeadlineFeed.SECTIONS.keySet(), "Top stories");
             search = values.get("search") instanceof String ? ((String) values.get("search")).trim() : "";
+            filter = new OutletFilter(string(values.get("onlyOutlets")), string(values.get("hideOutlets")));
             storyCount = number(values.get("storyCount"), 10, 3, 20);
             perScreen = number(values.get("perScreen"), 1, 1, 4);
             secondsPerStory = number(values.get("secondsPerStory"), 12, 5, 120);
@@ -260,6 +263,10 @@ public final class GoogleNewsPlugin implements KioskPlugin {
             return value instanceof String && allowed.contains(value) ? (String) value : fallback;
         }
 
+        private static String string(Object value) {
+            return value instanceof String ? (String) value : "";
+        }
+
         private static int number(Object value, int fallback, int min, int max) {
             if (!(value instanceof Number)) return fallback;
             double d = ((Number) value).doubleValue();
@@ -275,12 +282,13 @@ public final class GoogleNewsPlugin implements KioskPlugin {
             if (!(other instanceof Settings)) return false;
             Settings o = (Settings) other;
             return edition.equals(o.edition) && section.equals(o.section) && search.equals(o.search)
+                && filter.key.equals(o.filter.key)
                 && storyCount == o.storyCount && perScreen == o.perScreen && secondsPerStory == o.secondsPerStory && refreshMinutes == o.refreshMinutes
                 && showLogos == o.showLogos && showCoverage == o.showCoverage && showClock == o.showClock;
         }
 
         @Override public int hashCode() {
-            return Objects.hash(edition, section, search, storyCount, perScreen, secondsPerStory, refreshMinutes, showLogos, showCoverage, showClock);
+            return Objects.hash(edition, section, search, filter.key, storyCount, perScreen, secondsPerStory, refreshMinutes, showLogos, showCoverage, showClock);
         }
     }
 }

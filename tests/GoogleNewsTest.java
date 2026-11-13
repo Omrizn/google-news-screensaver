@@ -61,7 +61,11 @@ public final class GoogleNewsTest {
     public static void main(String[] args) throws Exception {
         assert HeadlineFeed.url("United Kingdom", "Top stories", "").equals("https://news.google.com/rss?hl=en-GB&gl=GB&ceid=GB:en");
         assert HeadlineFeed.url("United States", "Sport", " ").equals("https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-US&gl=US&ceid=US:en");
-        assert HeadlineFeed.url("Nowhere", "Nothing", "Arsenal & Spurs").equals("https://news.google.com/rss/search?q=Arsenal+%26+Spurs&hl=en-GB&gl=GB&ceid=GB:en");
+        assert HeadlineFeed.url("Nowhere", "Nothing", "Arsenal & Spurs").equals("https://news.google.com/rss/search?q=Arsenal+%26+Spurs&hl=he&gl=IL&ceid=IL:he");
+        assert HeadlineFeed.url("Nowhere", "Top stories", "").equals("https://news.google.com/rss?hl=he&gl=IL&ceid=IL:he");
+        assert HeadlineFeed.url("\u05d9\u05e9\u05e8\u05d0\u05dc", "Sport", "").equals("https://news.google.com/rss/headlines/section/topic/SPORTS?hl=he&gl=IL&ceid=IL:he");
+        assert HeadlineFeed.EDITIONS.keySet().iterator().next().equals(HeadlineFeed.DEFAULT_EDITION);
+        assert new GoogleNewsPlugin.Settings(new HashMap<String, Object>()).edition.equals("\u05d9\u05e9\u05e8\u05d0\u05dc");
         assert HeadlineFeed.url("\u65e5\u672c", "Technology", null).equals("https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=ja&gl=JP&ceid=JP:ja");
         assert HeadlineFeed.heading("World", "").equals("World");
         Map<String, Object> grouped = new HashMap<>();
@@ -86,6 +90,30 @@ public final class GoogleNewsTest {
         assert stories.get(2).get("site") == null && "No outlet here".equals(stories.get(2).get("title"));
         assert HeadlineFeed.parse(feed(), 2).size() == 2;
         assert HeadlineFeed.parse("<rss></rss>", 10).isEmpty();
+
+        // Outlet lists: show only, hide, either by name or by website, hide wins, empty means everything.
+        assert !OutletFilter.NONE.active() && OutletFilter.NONE.allows("Anyone", null);
+        assert OutletFilter.tokens(" BBC, www.Ynet.co.il;;bbc\nSky News ").equals(java.util.Arrays.asList("bbc", "ynet.co.il", "sky news"));
+        assert OutletFilter.host("https://www.Ynet.co.il/path?x=1").equals("ynet.co.il") && OutletFilter.host(null).isEmpty();
+        OutletFilter only = new OutletFilter("bbc, standard.co.uk", "");
+        assert only.active() && only.allows("BBC News", null) && only.allows("Other name", "https://www.standard.co.uk");
+        assert !only.allows("Example", "http://insecure.example") && !only.allows(null, null);
+        OutletFilter hide = new OutletFilter("", "guardian,example");
+        assert hide.allows("BBC", "https://www.bbc.co.uk") && !hide.allows("The Guardian", null) && !hide.allows("X", "http://insecure.example");
+        assert new OutletFilter("bbc", "bbc").allows("BBC", null) == false;
+        assert new OutletFilter("A,b", "").key.equals(new OutletFilter(" a ; B ", null).key);
+        assert hide.hides("The Guardian") && !hide.hides("Sky News") && !hide.hides(null);
+
+        List<Map<String, Object>> onlyBbc = HeadlineFeed.parse(feed(), 10, new OutletFilter("bbc", ""));
+        assert onlyBbc.size() == 1 && "BBC".equals(onlyBbc.get(0).get("source")) : onlyBbc;
+        List<Map<String, Object>> noBbc = HeadlineFeed.parse(feed(), 10, new OutletFilter("", "bbc"));
+        assert noBbc.size() == 2 && "Budget unlocks \u00a310bn".equals(noBbc.get(0).get("title")) : noBbc;
+        // The limit counts only the stories kept, so hiding the first outlet does not shrink the result.
+        assert HeadlineFeed.parse(feed(), 2, new OutletFilter("", "bbc")).size() == 2;
+        // Hidden outlets disappear from "also covered by" and from the count.
+        Map<String, Object> filtered = HeadlineFeed.parse(feed(), 10, new OutletFilter("", "guardian")).get(0);
+        assert filtered.get("outlets").equals(java.util.Arrays.asList("Sky News")) && Integer.valueOf(2).equals(filtered.get("sources")) : filtered;
+        assert HeadlineFeed.parse(feed(), 10, new OutletFilter("nobody", "")).isEmpty();
 
         // The plugin publishes a loading document, then the stories with their logos.
         Host host = new Host();
@@ -128,6 +156,23 @@ public final class GoogleNewsTest {
         plugin.configure(settings);
         waitFor(() -> requests.size() > logoRequests + 1 && host.documents.get(host.documents.size() - 1).contains("\"heading\":\"Business\""));
         assert requests.get(requests.size() - 1).contains("/topic/BUSINESS?") : requests;
+
+        // Outlet lists refetch, and a list that matches nothing is an answer, not an error.
+        int beforeFilter = requests.size();
+        settings.put("hideOutlets", "bbc");
+        plugin.configure(settings);
+        waitFor(() -> requests.size() > beforeFilter && host.documents.get(host.documents.size() - 1).contains("Budget unlocks"));
+        String hidden = host.documents.get(host.documents.size() - 1);
+        assert !hidden.contains("Nine killed") && host.status.startsWith("2 stories") && !host.statusError : host.status;
+        settings.put("onlyOutlets", "nobody");
+        plugin.configure(settings);
+        waitFor(() -> host.status != null && host.status.startsWith("No stories match"));
+        assert !host.statusError && host.documents.get(host.documents.size() - 1).contains("\"stories\":[]");
+        assert !host.documents.get(host.documents.size() - 1).contains("Couldn't reach Google News");
+        settings.put("onlyOutlets", "");
+        settings.put("hideOutlets", "");
+        plugin.configure(settings);
+        waitFor(() -> host.status != null && host.status.startsWith("3 stories"));
 
         // A failed refresh keeps the last stories on screen.
         plugin.fetcher = new GoogleNewsPlugin.Fetcher() {
