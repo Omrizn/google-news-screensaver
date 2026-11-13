@@ -23,7 +23,17 @@ final class OutletFilter {
     OutletFilter(String only, String hide) {
         this.only = tokens(only);
         this.hide = tokens(hide);
-        this.key = String.join(",", this.only) + "|" + String.join(",", this.hide);
+        this.key = join(this.only) + "|" + join(this.hide);
+    }
+
+    /** Comma-joined names. String.join needs Android 8, and the plugin supports Android 7. */
+    private static String join(List<String> names) {
+        StringBuilder out = new StringBuilder();
+        for (String name : names) {
+            if (out.length() > 0) out.append(',');
+            out.append(name);
+        }
+        return out.toString();
     }
 
     boolean active() {
