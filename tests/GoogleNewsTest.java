@@ -161,7 +161,8 @@ public final class GoogleNewsTest {
         int beforeFilter = requests.size();
         settings.put("hideOutlets", "bbc");
         plugin.configure(settings);
-        waitFor(() -> requests.size() > beforeFilter && host.documents.get(host.documents.size() - 1).contains("Budget unlocks"));
+        // The status is published after the document, so wait for it: the last document may still be the unfiltered one.
+        waitFor(() -> requests.size() > beforeFilter && host.status != null && host.status.startsWith("2 stories"));
         String hidden = host.documents.get(host.documents.size() - 1);
         assert !hidden.contains("Nine killed") && host.status.startsWith("2 stories") && !host.statusError : host.status;
         settings.put("onlyOutlets", "nobody");
